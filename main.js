@@ -26,12 +26,45 @@ const vsSource = `
 
 // Fragment shader program
 const fsSource = `	
+
+	#define ITERATIONS 100
+	#define MIN_DIST .01
+	#define MAX_DIST 1000.
+
 	precision mediump float;
 	uniform vec2 resolution;
 	
+	float sphereSDF(vec3 p, float r) {
+		return length(p) - r;
+	}
+	
+	float getDist(vec3 p) {
+		float sd = sphereSDF(p - vec3(0., 1., 6.), 1.);
+		return sd;
+	}
+
+	float raymarch(vec3 ro, vec3 rd) {
+		float d0 = 0.;
+		for(int i=0;i<ITERATIONS;i++) {
+			vec3 p = ro + d0 * rd;
+			float ds = getDist(p);
+			d0 += ds;
+			if(d0 > MAX_DIST || ds < MIN_DIST) {
+				break;
+			}
+		}
+		return d0;
+	}
+
+
 	void main() {
-		vec2 uv = gl_FragCoord.xy / resolution;
-		gl_FragColor = vec4(uv.x, uv.y, 0.0, 1.0);
+		vec2 uv = 2. * gl_FragCoord.xy / resolution - 1.;
+		vec3 ro = vec3(0.);
+		vec3 rd = normalize(vec3(uv, 1.));
+		float ds = raymarch(ro, rd);
+
+		vec3 col = vec3(1. - ds/10.);
+		gl_FragColor = vec4(col, 1.0);
 	}
 `;
 
